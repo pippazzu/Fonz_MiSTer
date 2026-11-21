@@ -1,0 +1,110 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Player/position counters joined to the picture path. Remaining sheet nets
+// and analogue responses stay visible in the interface; see TRACE.md.
+// Wire names follow docs/NET_NAMES.md.
+`timescale 1ns/1ps
+`default_nettype none
+module fonz_scene(
+    input wire prom_clk,
+    input wire [15:0] prom_load,
+    input wire IC45_pin8_IC67_pin12,IC37_pin12_ACCEL,IC37_pin6_LEFT,IC37_pin4_RIGHT,
+    input wire IC9_pin5_UPPER_OSC,IC106_pin5_LOWER_OSC,IC9_pin13_IC9_pin9,IC106_pin13_IC106_pin9,
+    input wire IC83_pin9_GAME_LATCH,IC103_pin5_START,IC105_pin5_THROTTLE,
+    input wire IC97_pin5_IC97_pin1,IC97_pin13_IC102_pin9,IC102_pin5_LEFT_KERB,
+    input wire IC102_pin13_ROAD,IC104_pin5_RIGHT_KERB,IC104_pin13_IC20_pin9,
+    input wire R67_C44_IC101_pin5,
+    input wire IC103_pin12_START_n,IC30_pin4_CRASH_n,IC30_pin5_CRASH_HOLD,
+    output wire IC5_pin11_R13,IC7_pin8_R26,IC7_pin12_VR13,
+    output wire [2:0] ic9a_ab_clear_n,ic9b_ab_clear_n,ic106a_ab_clear_n,ic106b_ab_clear_n,
+    output wire [2:0] ic97b_ab_clear_n,ic97a_ab_clear_n,
+    output wire [2:0] ic102b_ab_clear_n,ic102a_ab_clear_n,
+    output wire [2:0] ic104b_ab_clear_n,ic104a_ab_clear_n,
+    output wire [2:0] ic30a_ab_clear_n,ic30b_ab_clear_n,
+    output wire IC17_pin4_CN24,IC17_pin6_CN_Y,IC39_pin3_R110,IC83_pin7_ADDR_CLEAR,IC60_pin3_STEER_DECODE,
+    output wire IC3_pin5_VBLANK,IC3_pin6_VBLANK_n,IC25_pin12_VSYNC_n,
+    output wire [3:0] IC18_pin3_2_6_7,IC64_pin14_13_12_11,IC42_pin14_13_12_11,
+    output wire [3:0] IC22_pin14_13_12_11,IC44_pin14_13_12_11,IC21_pin14_13_12_11,IC43_pin14_13_12_11,
+    output wire [3:0] IC68_pin14_13_12_11_H,IC46_pin14_13_12_11_H,
+    output wire [3:0] IC24_pin14_13_12_11_V,IC2_pin14_13_12_11_V,
+    // Raster taps for the MiSTer video timing (docs/VIDEO_TIMING.md).
+    output wire IC67_pin3_PIXEL_CLK,IC4_pin5_HBLANK,IC27_pin11_HSYNC_n,
+    // Ninth H and V count bits, for the score overlay (not original).
+    output wire IC4_pin3_H8,IC3_pin3_V8
+);
+    wire IC20_pin3_IC19_pin3,IC20_pin2_NC,IC41_pin8_PLAYER_LOAD_n,IC62_pin10_LOWER_CLEAR;
+    wire IC61_pin12_IC39_pin10,IC61_pin6_STEER_RIGHT_n,IC39_pin8_IC64_pin3;
+    wire IC66_pin3_IC65_pin1,IC66_pin5_IC65_pin5,IC65_pin12_POS1_LOAD_n,IC65_pin6_POS2_LOAD_n;
+    wire IC84_pin11_POSITION_n,IC101_pin6_ROAD_LOAD_n,IC28_pin8_STEER_GATE;
+    wire IC67_pin2_PIXEL_CLK_n,IC4_pin2_H8_n,IC4_pin6_HBLANK_n;
+    wire IC95_pin1_LINE_START,IC95_pin13_IC60_pin5,IC95_pin10_IC38_pin4;
+    wire IC9_pin12_IC9_pin2,IC106_pin12_IC106_pin2;
+    // Schmitt IC37 pins9->8 buffer IC67 /Q2. This is the player clock,
+    // not the crystal oscillator and not IC105's separate Q5 timing output.
+    wire IC37_pin8_PLAYER_CLK=~IC67_pin2_PIXEL_CLK_n;
+    wire IC47_pin13_STEER_WINDOW=~(IC24_pin14_13_12_11_V[1] | IC25_pin12_VSYNC_n); // IC47 pins 11,12 -> 13
+    // IC83 Q9 -> IC62 pins 5 -> 6: feeds IC41.13 and IC84.1.
+    wire IC62_pin6_GAME_LATCH_n=~IC83_pin9_GAME_LATCH;
+    fonz_player_control player(
+        .IC37_pin8_PLAYER_CLK(IC37_pin8_PLAYER_CLK),.IC47_pin13_STEER_WINDOW(IC47_pin13_STEER_WINDOW),
+        .IC95_pin1_LINE_START(IC95_pin1_LINE_START),.IC28_pin8_STEER_GATE(IC28_pin8_STEER_GATE),
+        .IC37_pin12_ACCEL(IC37_pin12_ACCEL),.IC37_pin6_LEFT(IC37_pin6_LEFT),.IC37_pin4_RIGHT(IC37_pin4_RIGHT),
+        .IC95_pin10_IC38_pin4(IC95_pin10_IC38_pin4),.IC95_pin13_IC60_pin5(IC95_pin13_IC60_pin5),
+        .IC62_pin6_GAME_LATCH_n(IC62_pin6_GAME_LATCH_n),.IC30_pin4_CRASH_n(IC30_pin4_CRASH_n),
+        .IC103_pin5_START(IC103_pin5_START),
+        .IC18_pin3_2_6_7(IC18_pin3_2_6_7),.IC64_pin14_13_12_11(IC64_pin14_13_12_11),
+        .IC42_pin14_13_12_11(IC42_pin14_13_12_11),
+        .IC20_pin3_IC19_pin3(IC20_pin3_IC19_pin3),.IC20_pin2_NC(IC20_pin2_NC),
+        .IC41_pin8_PLAYER_LOAD_n(IC41_pin8_PLAYER_LOAD_n),.IC62_pin10_LOWER_CLEAR(IC62_pin10_LOWER_CLEAR),
+        .IC39_pin3_R110(IC39_pin3_R110),.IC17_pin6_CN_Y(IC17_pin6_CN_Y),.IC17_pin4_CN24(IC17_pin4_CN24),
+        .IC60_pin3_STEER_DECODE(IC60_pin3_STEER_DECODE),.IC61_pin12_IC39_pin10(IC61_pin12_IC39_pin10),
+        .IC61_pin6_STEER_RIGHT_n(IC61_pin6_STEER_RIGHT_n),.IC39_pin8_IC64_pin3(IC39_pin8_IC64_pin3));
+    fonz_position_counters position(
+        .IC4_pin6_HBLANK_n(IC4_pin6_HBLANK_n),.IC18_pin3_2_6(IC18_pin3_2_6_7[2:0]),
+        .IC25_pin12_VSYNC_n(IC25_pin12_VSYNC_n),
+        .IC22_pin14_13_12_11(IC22_pin14_13_12_11),.IC44_pin14_13_12_11(IC44_pin14_13_12_11),
+        .IC21_pin14_13_12_11(IC21_pin14_13_12_11),.IC43_pin14_13_12_11(IC43_pin14_13_12_11),
+        .IC66_pin3_IC65_pin1(IC66_pin3_IC65_pin1),.IC66_pin5_IC65_pin5(IC66_pin5_IC65_pin5),
+        .IC65_pin12_POS1_LOAD_n(IC65_pin12_POS1_LOAD_n),.IC65_pin6_POS2_LOAD_n(IC65_pin6_POS2_LOAD_n),
+        .IC84_pin11_POSITION_n(IC84_pin11_POSITION_n),.IC83_pin7_ADDR_CLEAR(IC83_pin7_ADDR_CLEAR));
+    fonz_picture picture(
+        .prom_clk(prom_clk),.prom_load(prom_load),
+        .IC45_pin8_IC67_pin12(IC45_pin8_IC67_pin12),
+        .IC9_pin5_UPPER_OSC(IC9_pin5_UPPER_OSC),.IC106_pin5_LOWER_OSC(IC106_pin5_LOWER_OSC),
+        .IC83_pin7_ADDR_CLEAR(IC83_pin7_ADDR_CLEAR),
+        .IC62_pin10_LOWER_CLEAR(IC62_pin10_LOWER_CLEAR),.IC37_pin4_RIGHT(IC37_pin4_RIGHT),
+        .IC62_pin6_GAME_LATCH_n(IC62_pin6_GAME_LATCH_n),
+        .IC65_pin6_POS2_LOAD_n(IC65_pin6_POS2_LOAD_n),.IC105_pin5_THROTTLE(IC105_pin5_THROTTLE),
+        .IC60_pin3_STEER_DECODE(IC60_pin3_STEER_DECODE),
+        .IC97_pin5_IC97_pin1(IC97_pin5_IC97_pin1),.IC97_pin13_IC102_pin9(IC97_pin13_IC102_pin9),
+        .IC102_pin5_LEFT_KERB(IC102_pin5_LEFT_KERB),.IC102_pin13_ROAD(IC102_pin13_ROAD),
+        .IC104_pin5_RIGHT_KERB(IC104_pin5_RIGHT_KERB),.IC104_pin13_IC20_pin9(IC104_pin13_IC20_pin9),
+        .R67_C44_IC101_pin5(R67_C44_IC101_pin5),.IC84_pin11_POSITION_n(IC84_pin11_POSITION_n),
+        .IC37_pin8_PLAYER_CLK(IC37_pin8_PLAYER_CLK),
+        .IC103_pin12_START_n(IC103_pin12_START_n),.IC30_pin4_CRASH_n(IC30_pin4_CRASH_n),
+        .IC30_pin5_CRASH_HOLD(IC30_pin5_CRASH_HOLD),
+        .IC5_pin11_R13(IC5_pin11_R13),.IC7_pin8_R26(IC7_pin8_R26),.IC7_pin12_VR13(IC7_pin12_VR13),
+        .IC101_pin6_ROAD_LOAD_n(IC101_pin6_ROAD_LOAD_n),.IC28_pin8_STEER_GATE(IC28_pin8_STEER_GATE),
+        .ic97b_ab_clear_n(ic97b_ab_clear_n),.ic97a_ab_clear_n(ic97a_ab_clear_n),
+        .ic102b_ab_clear_n(ic102b_ab_clear_n),.ic102a_ab_clear_n(ic102a_ab_clear_n),
+        .ic104b_ab_clear_n(ic104b_ab_clear_n),.ic104a_ab_clear_n(ic104a_ab_clear_n),
+        .ic30a_ab_clear_n(ic30a_ab_clear_n),.ic30b_ab_clear_n(ic30b_ab_clear_n),
+        .IC68_pin14_13_12_11_H(IC68_pin14_13_12_11_H),.IC46_pin14_13_12_11_H(IC46_pin14_13_12_11_H),
+        .IC24_pin14_13_12_11_V(IC24_pin14_13_12_11_V),.IC2_pin14_13_12_11_V(IC2_pin14_13_12_11_V),
+        .IC67_pin3_PIXEL_CLK(IC67_pin3_PIXEL_CLK),.IC67_pin2_PIXEL_CLK_n(IC67_pin2_PIXEL_CLK_n),
+        .IC4_pin3_H8(IC4_pin3_H8),.IC4_pin2_H8_n(IC4_pin2_H8_n),
+        .IC4_pin5_HBLANK(IC4_pin5_HBLANK),.IC4_pin6_HBLANK_n(IC4_pin6_HBLANK_n),
+        .IC3_pin3_V8(IC3_pin3_V8),.IC3_pin5_VBLANK(IC3_pin5_VBLANK),.IC3_pin6_VBLANK_n(IC3_pin6_VBLANK_n),
+        .IC95_pin1_LINE_START(IC95_pin1_LINE_START),
+        .IC95_pin13_IC60_pin5(IC95_pin13_IC60_pin5),.IC95_pin10_IC38_pin4(IC95_pin10_IC38_pin4),
+        .IC27_pin11_HSYNC_n(IC27_pin11_HSYNC_n),.IC25_pin12_VSYNC_n(IC25_pin12_VSYNC_n));
+    // IC101.6 (road load) also clears IC9; IC41.8 (player load) clears IC106.
+    fonz_shape_oscillator_connections ic9_pins(
+        .clear_n(IC101_pin6_ROAD_LOAD_n),.first_q(IC9_pin13_IC9_pin9),.second_q(IC9_pin5_UPPER_OSC),
+        .first_ab_clear_n(ic9a_ab_clear_n),.second_ab_clear_n(ic9b_ab_clear_n),
+        .second_q_n(IC9_pin12_IC9_pin2));
+    fonz_shape_oscillator_connections ic106_pins(
+        .clear_n(IC41_pin8_PLAYER_LOAD_n),.first_q(IC106_pin13_IC106_pin9),.second_q(IC106_pin5_LOWER_OSC),
+        .first_ab_clear_n(ic106a_ab_clear_n),.second_ab_clear_n(ic106b_ab_clear_n),
+        .second_q_n(IC106_pin12_IC106_pin2));
+endmodule
+`default_nettype wire

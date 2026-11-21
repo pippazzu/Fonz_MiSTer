@@ -1,0 +1,65 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Joined score/time counters, score divider, scan multiplexer and zero
+// suppression. Scan indices are decoder values, not left-to-right positions.
+// Wire names follow docs/NET_NAMES.md.
+`timescale 1ns/1ps
+`default_nettype none
+module fonz_scoreboard(
+    input wire [2:0] IC2_pin13_12_11,
+    input wire IC83_pin9_GAME_LATCH,IC24_pin14_V,IC105_pin5_THROTTLE,IC30_pin12_CRASH_HOLD_n,
+    input wire IC101_pin11_COUNT_CLEAR,IC82_pin10_IC76_pin4,IC103_pin13_ANTENNA,
+    input wire IC81_pin6_TIME_LOAD_n,IC83_pin13_EXTEND_ARMED,
+    output wire [3:0] IC75_pin3_2_6_7,IC76_pin3_2_6_7,
+    output wire [3:0] IC77_pin13_11_10_9,IC77_pin3_5_6_7,IC79_pin3_5_6_7,IC79_pin13_11_10_9,
+    output wire [3:0] IC74_pin3_4_5_6,IC74_pin11_10_9_8,
+    output wire IC75_pin13_IC82_pin12,IC76_pin13_BORROW_n,IC59_pin12_TIME_PRESET,
+    output wire IC59_pin8_THRESHOLD_n,IC59_pin10_SCORE_CLEAR,IC80_pin6_IC33_pin5,IC82_pin13_TIME_UP,
+    output wire [5:0] IC36_pin6_4_2_12_10_8_DIGIT,
+    output wire [6:0] IC33_pin14_15_9_10_11_12_13,
+    output wire [3:0] IC34_pin8_2_12_10_IC33_pin7_1_2_6,IC34_pin9_1_13_11_BCD_n
+);
+    wire [9:0] IC58_pin1_2_3_4_5_6_7_9_10_11;
+    wire IC92_pin6_IC27_pin5,IC27_pin6_IC74_pin1,IC81_pin11_IC100_pin13,IC100_pin12_IC34_pin9;
+    wire IC81_pin3_IC80_pin2,IC81_pin8_IC80_pin5;
+    wire IC7_pin6_IC81_pin10,IC80_pin8_IC81_pin9,IC78_pin8_IC59_pin11;
+    fonz_score_clock divider(
+        .IC83_pin9_GAME_LATCH(IC83_pin9_GAME_LATCH),.IC24_pin14_V(IC24_pin14_V),
+        .IC105_pin5_THROTTLE(IC105_pin5_THROTTLE),.IC30_pin12_CRASH_HOLD_n(IC30_pin12_CRASH_HOLD_n),
+        .IC59_pin10_SCORE_CLEAR(IC59_pin10_SCORE_CLEAR),
+        .IC92_pin6_IC27_pin5(IC92_pin6_IC27_pin5),.IC27_pin6_IC74_pin1(IC27_pin6_IC74_pin1),
+        .IC74_pin3_4_5_6(IC74_pin3_4_5_6),.IC74_pin11_10_9_8(IC74_pin11_10_9_8));
+    fonz_score_counters score(
+        // IC74 pin 8 (QD of the second half) clocks IC77 pin 15.
+        .IC74_pin8_IC77_pin15(IC74_pin11_10_9_8[3]),.IC101_pin11_COUNT_CLEAR(IC101_pin11_COUNT_CLEAR),
+        .IC77_pin13_11_10_9(IC77_pin13_11_10_9),.IC77_pin3_5_6_7(IC77_pin3_5_6_7),
+        .IC79_pin3_5_6_7(IC79_pin3_5_6_7),.IC79_pin13_11_10_9(IC79_pin13_11_10_9));
+    fonz_time_counters timer(
+        .IC82_pin10_IC76_pin4(IC82_pin10_IC76_pin4),.IC103_pin13_ANTENNA(IC103_pin13_ANTENNA),
+        .IC81_pin6_TIME_LOAD_n(IC81_pin6_TIME_LOAD_n),.IC83_pin13_EXTEND_ARMED(IC83_pin13_EXTEND_ARMED),
+        .IC75_pin3_2_6_7(IC75_pin3_2_6_7),.IC76_pin3_2_6_7(IC76_pin3_2_6_7),
+        .IC75_pin13_IC82_pin12(IC75_pin13_IC82_pin12),.IC76_pin13_BORROW_n(IC76_pin13_BORROW_n),
+        .IC59_pin12_TIME_PRESET(IC59_pin12_TIME_PRESET),.IC82_pin13_TIME_UP(IC82_pin13_TIME_UP));
+    fonz_score_decode decode(
+        .IC36_pin6_4_2_12_10_8_DIGIT(IC36_pin6_4_2_12_10_8_DIGIT),
+        // IC58 output 3 is pin 4.
+        .IC58_pin4_DIGIT3_n(IC58_pin1_2_3_4_5_6_7_9_10_11[3]),
+        .IC77_pin13_11_10_9(IC77_pin13_11_10_9),.IC77_pin3_5_6_7(IC77_pin3_5_6_7),
+        .IC79_pin3_5_6_7(IC79_pin3_5_6_7),.IC79_pin13_THOUSANDS(IC79_pin13_11_10_9[0]),
+        .IC81_pin11_IC100_pin13(IC81_pin11_IC100_pin13),.IC100_pin12_IC34_pin9(IC100_pin12_IC34_pin9),
+        .IC59_pin8_THRESHOLD_n(IC59_pin8_THRESHOLD_n),
+        .IC81_pin3_IC80_pin2(IC81_pin3_IC80_pin2),.IC81_pin8_IC80_pin5(IC81_pin8_IC80_pin5),
+        .IC7_pin6_IC81_pin10(IC7_pin6_IC81_pin10),.IC80_pin6_IC33_pin5(IC80_pin6_IC33_pin5),
+        .IC80_pin8_IC81_pin9(IC80_pin8_IC81_pin9),.IC78_pin8_IC59_pin11(IC78_pin8_IC59_pin11),
+        .IC59_pin10_SCORE_CLEAR(IC59_pin10_SCORE_CLEAR));
+    fonz_display display(
+        .IC2_pin13_12_11(IC2_pin13_12_11),.IC75_pin3_2_6_7(IC75_pin3_2_6_7),.IC76_pin3_2_6_7(IC76_pin3_2_6_7),
+        .IC77_pin13_11_10_9(IC77_pin13_11_10_9),.IC77_pin3_5_6_7(IC77_pin3_5_6_7),
+        .IC79_pin3_5_6_7(IC79_pin3_5_6_7),.IC80_pin6_IC33_pin5(IC80_pin6_IC33_pin5),
+        .IC100_pin12_IC34_pin9(IC100_pin12_IC34_pin9),
+        .IC36_pin6_4_2_12_10_8_DIGIT(IC36_pin6_4_2_12_10_8_DIGIT),
+        .IC58_pin1_2_3_4_5_6_7_9_10_11(IC58_pin1_2_3_4_5_6_7_9_10_11),
+        .IC34_pin8_2_12_10_IC33_pin7_1_2_6(IC34_pin8_2_12_10_IC33_pin7_1_2_6),
+        .IC33_pin14_15_9_10_11_12_13(IC33_pin14_15_9_10_11_12_13),
+        .IC34_pin9_1_13_11_BCD_n(IC34_pin9_1_13_11_BCD_n));
+endmodule
+`default_nettype wire

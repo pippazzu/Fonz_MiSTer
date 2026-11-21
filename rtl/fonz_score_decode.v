@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Right of the score counters. No behavioural "score >= threshold" shortcut.
+// Pin connections are from docs/NET_CHECKS.md. Wire names follow
+// docs/NET_NAMES.md.
+`timescale 1ns/1ps
+`default_nettype none
+module fonz_score_decode(
+    input wire [5:0] IC36_pin6_4_2_12_10_8_DIGIT,
+    input wire IC58_pin4_DIGIT3_n,
+    input wire [3:0] IC77_pin13_11_10_9,IC77_pin3_5_6_7,IC79_pin3_5_6_7,
+    input wire IC79_pin13_THOUSANDS,
+    output wire IC81_pin11_IC100_pin13,IC100_pin12_IC34_pin9,IC59_pin8_THRESHOLD_n,
+    output wire IC81_pin3_IC80_pin2,IC81_pin8_IC80_pin5,IC7_pin6_IC81_pin10,
+    output wire IC80_pin6_IC33_pin5,IC80_pin8_IC81_pin9,IC78_pin8_IC59_pin11,IC59_pin10_SCORE_CLEAR
+);
+    assign IC81_pin11_IC100_pin13=IC79_pin13_THOUSANDS & IC36_pin6_4_2_12_10_8_DIGIT[5]; // 12,13 ->11
+    assign IC100_pin12_IC34_pin9=~IC81_pin11_IC100_pin13; // 13 ->12, OC inverter
+    assign IC59_pin8_THRESHOLD_n=~IC79_pin13_THOUSANDS;   // 9 ->8
+    // IC58 /Y3 (pin 4) reaches both IC7 pins 3 and 4.
+    assign IC7_pin6_IC81_pin10=~(IC58_pin4_DIGIT3_n | IC58_pin4_DIGIT3_n | IC79_pin13_THOUSANDS); // 3,4,5 ->6, NOR3
+    assign IC81_pin3_IC80_pin2=IC36_pin6_4_2_12_10_8_DIGIT[4] & IC59_pin8_THRESHOLD_n; // 1,2 ->3
+    // IC80B: 9 <- IC79.7, 10 <- IC79.6, 12 <- IC79.5, 13 <- IC79.3.
+    assign IC80_pin8_IC81_pin9=~(IC79_pin3_5_6_7[3] | IC79_pin3_5_6_7[2] |
+                                 IC79_pin3_5_6_7[1] | IC79_pin3_5_6_7[0]);
+    assign IC81_pin8_IC80_pin5=IC80_pin8_IC81_pin9 & IC7_pin6_IC81_pin10; // 9,10 ->8
+    // Both strobes on IC80 (3 and 11) are tied high. 1 <- digit 0, 4 <- digit 5.
+    assign IC80_pin6_IC33_pin5=~(IC36_pin6_4_2_12_10_8_DIGIT[0] | IC36_pin6_4_2_12_10_8_DIGIT[5] |
+                                 IC81_pin3_IC80_pin2 | IC81_pin8_IC80_pin5);
+    // IC78 8-input NAND; pin6 tied high. 3 <- IC79.13, 4 <- IC79.7, 2 <- IC79.3,
+    // 12 <- IC77.3, 5 <- IC77.13, 1 <- IC77.7, 11 <- IC77.9.
+    assign IC78_pin8_IC59_pin11=~(IC79_pin13_THOUSANDS & IC79_pin3_5_6_7[3] & IC79_pin3_5_6_7[0] &
+                   IC77_pin3_5_6_7[0] & IC77_pin13_11_10_9[0] & IC77_pin3_5_6_7[3] &
+                   IC77_pin13_11_10_9[3] & 1'b1);
+    assign IC59_pin10_SCORE_CLEAR=~IC78_pin8_IC59_pin11; // 11 ->10
+endmodule
+`default_nettype wire

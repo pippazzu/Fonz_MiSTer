@@ -1,0 +1,54 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Raster counters joined to the three digital resistor-mixer drivers.
+// Wire names follow docs/NET_NAMES.md.
+`timescale 1ns/1ps
+`default_nettype none
+module fonz_raster_video(
+    input wire IC45_pin8_IC67_pin12,
+    input wire IC71_pin7_UPPER_SHAPE1,IC108_pin7_IC6_pin10,IC41_pin3_IC6_pin9,
+    input wire IC71_pin9_UPPER_SHAPE2,IC20_pin5_IC6_pin1,
+    input wire IC28_pin4_IC5_pin5,IC108_pin9_LOWER_SHAPE2,IC101_pin6_ROAD_LOAD_n,IC102_pin13_ROAD,
+    output wire IC5_pin11_R13,IC7_pin8_R26,IC7_pin12_VR13,IC47_pin1_IC29_pin1,
+    output wire IC67_pin3_PIXEL_CLK,IC67_pin2_PIXEL_CLK_n,
+    output wire [3:0] IC68_pin14_13_12_11_H,IC46_pin14_13_12_11_H,
+    output wire [3:0] IC24_pin14_13_12_11_V,IC2_pin14_13_12_11_V,
+    output wire IC4_pin3_H8,IC4_pin2_H8_n,IC4_pin5_HBLANK,IC4_pin6_HBLANK_n,
+    output wire IC3_pin3_V8,IC3_pin2_NC,IC3_pin5_VBLANK,IC3_pin6_VBLANK_n,
+    output wire IC89_pin8_LINE_END_n,IC27_pin8_IC4_pin10,IC27_pin11_HSYNC_n,
+    output wire IC25_pin8_FRAME_END_n,IC25_pin12_VSYNC_n,
+    output wire IC26_pin10_IC25_pin2,IC26_pin12_IC3_pin10,
+    output wire IC95_pin1_LINE_START,IC95_pin13_IC60_pin5,IC95_pin10_IC38_pin4
+);
+    wire IC5_pin8_IC5_pin12,IC5_pin6_IC7_pin9,IC6_pin8_IC5_pin4,IC6_pin12_IC47_pin2;
+    wire IC6_pin6_IC27_pin1,IC45_pin2_IC47_pin3,IC26_pin2_IC6_pin5,IC27_pin3_IC7_pin13;
+    fonz_raster raster(
+        .IC45_pin8_IC67_pin12(IC45_pin8_IC67_pin12),
+        .IC67_pin3_PIXEL_CLK(IC67_pin3_PIXEL_CLK),.IC67_pin2_PIXEL_CLK_n(IC67_pin2_PIXEL_CLK_n),
+        .IC68_pin14_13_12_11_H(IC68_pin14_13_12_11_H),.IC46_pin14_13_12_11_H(IC46_pin14_13_12_11_H),
+        .IC24_pin14_13_12_11_V(IC24_pin14_13_12_11_V),.IC2_pin14_13_12_11_V(IC2_pin14_13_12_11_V),
+        .IC4_pin3_H8(IC4_pin3_H8),.IC4_pin2_H8_n(IC4_pin2_H8_n),
+        .IC4_pin5_HBLANK(IC4_pin5_HBLANK),.IC4_pin6_HBLANK_n(IC4_pin6_HBLANK_n),
+        .IC3_pin3_V8(IC3_pin3_V8),.IC3_pin2_NC(IC3_pin2_NC),
+        .IC3_pin5_VBLANK(IC3_pin5_VBLANK),.IC3_pin6_VBLANK_n(IC3_pin6_VBLANK_n),
+        .IC89_pin8_LINE_END_n(IC89_pin8_LINE_END_n),.IC27_pin8_IC4_pin10(IC27_pin8_IC4_pin10),
+        .IC27_pin11_HSYNC_n(IC27_pin11_HSYNC_n),.IC25_pin8_FRAME_END_n(IC25_pin8_FRAME_END_n),
+        .IC25_pin12_VSYNC_n(IC25_pin12_VSYNC_n),.IC26_pin10_IC25_pin2(IC26_pin10_IC25_pin2),
+        .IC26_pin12_IC3_pin10(IC26_pin12_IC3_pin10),
+        .IC95_pin1_LINE_START(IC95_pin1_LINE_START),
+        .IC95_pin13_IC60_pin5(IC95_pin13_IC60_pin5),.IC95_pin10_IC38_pin4(IC95_pin10_IC38_pin4));
+    fonz_video_gates video(
+        .IC27_pin11_HSYNC_n(IC27_pin11_HSYNC_n),.IC25_pin12_VSYNC_n(IC25_pin12_VSYNC_n),
+        .IC4_pin5_HBLANK(IC4_pin5_HBLANK),.IC3_pin5_VBLANK(IC3_pin5_VBLANK),
+        .IC71_pin7_UPPER_SHAPE1(IC71_pin7_UPPER_SHAPE1),.IC108_pin7_IC6_pin10(IC108_pin7_IC6_pin10),
+        .IC41_pin3_IC6_pin9(IC41_pin3_IC6_pin9),.IC71_pin9_UPPER_SHAPE2(IC71_pin9_UPPER_SHAPE2),
+        .IC20_pin5_IC6_pin1(IC20_pin5_IC6_pin1),.IC28_pin4_IC5_pin5(IC28_pin4_IC5_pin5),
+        .IC108_pin9_LOWER_SHAPE2(IC108_pin9_LOWER_SHAPE2),
+        .IC101_pin6_ROAD_LOAD_n(IC101_pin6_ROAD_LOAD_n),.IC102_pin13_ROAD(IC102_pin13_ROAD),
+        .IC5_pin8_IC5_pin12(IC5_pin8_IC5_pin12),.IC5_pin11_R13(IC5_pin11_R13),
+        .IC5_pin6_IC7_pin9(IC5_pin6_IC7_pin9),.IC7_pin8_R26(IC7_pin8_R26),
+        .IC7_pin12_VR13(IC7_pin12_VR13),.IC6_pin8_IC5_pin4(IC6_pin8_IC5_pin4),
+        .IC6_pin12_IC47_pin2(IC6_pin12_IC47_pin2),.IC6_pin6_IC27_pin1(IC6_pin6_IC27_pin1),
+        .IC45_pin2_IC47_pin3(IC45_pin2_IC47_pin3),.IC26_pin2_IC6_pin5(IC26_pin2_IC6_pin5),
+        .IC47_pin1_IC29_pin1(IC47_pin1_IC29_pin1),.IC27_pin3_IC7_pin13(IC27_pin3_IC7_pin13));
+endmodule
+`default_nettype wire

@@ -1,0 +1,97 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Wire names follow docs/NET_NAMES.md.
+`timescale 1ns/1ps
+`default_nettype none
+// Upper middle: IC69/91 presettable count pair and IC90/73 dividers.
+module fonz_upper_motion(
+    input wire IC47_pin10_HOLD,IC67_pin6_BIT_CLEAR,IC9_pin5_UPPER_OSC,
+    input wire IC25_pin12_VSYNC_n,IC65_pin6_POS2_LOAD_n,IC106_pin5_LOWER_OSC,
+    input wire IC101_pin6_ROAD_LOAD_n,IC51_pin9_IC73_CLEAR,
+    output wire IC92_pin8_IC69_pin5,IC92_pin12_IC90_pin15,IC69_pin12_CARRY_n,IC91_pin12_IC47_pin9,
+    output wire [3:0] IC69_pin3_2_6_7,IC91_pin3_2_6_7,
+    output wire [3:0] IC90_pin13_11_10_9,IC90_pin3_5_6_7,
+    output wire [3:0] IC73_pin3_4_5_6,IC73_pin11_10_9_8
+);
+    wire IC90_pin13_IC90_pin12,IC90_pin3_DIV2;
+    wire [2:0] IC90_pin11_10_9,IC90_pin5_6_7;
+    wire IC69_pin13_NC,IC91_pin13_NC;
+    assign IC92_pin8_IC69_pin5=~(IC47_pin10_HOLD | IC67_pin6_BIT_CLEAR | IC9_pin5_UPPER_OSC);       // 9,11,10 -> 8
+    assign IC92_pin12_IC90_pin15=~(IC25_pin12_VSYNC_n | IC65_pin6_POS2_LOAD_n | IC106_pin5_LOWER_OSC); // 1,2,13 -> 12
+    // Physical pin15 section is drawn first. Its QA13 -> B12 link is shown.
+    fonz_74390_half ic90_p15(.clk_a(IC92_pin12_IC90_pin15),.clk_b(IC90_pin13_IC90_pin12),
+        .clear(1'b0),.qa(IC90_pin13_IC90_pin12),.qdcb(IC90_pin11_10_9));
+    // The native scan shows QA3 linked to B4 above the second section.
+    // IC90 pin 9 (QD) clocks the second section at pin 1.
+    fonz_74390_half ic90_p1(.clk_a(IC90_pin11_10_9[2]),.clk_b(IC90_pin3_DIV2),
+        .clear(1'b0),.qa(IC90_pin3_DIV2),.qdcb(IC90_pin5_6_7));
+    assign IC90_pin13_11_10_9={IC90_pin11_10_9,IC90_pin13_IC90_pin12};
+    assign IC90_pin3_5_6_7={IC90_pin5_6_7,IC90_pin3_DIV2};
+    // Pins69.15/1 grounded; C10<-90.10, D9<-90.9.
+    // Pins91.15<-90.3, 1<-90.5, 10 high, 9<-90.7.
+    // DOWN clocks are not drawn; inactive-high TTL assumption is explicit.
+    fonz_74192 ic69(.up(IC92_pin8_IC69_pin5),.down(1'b1),.clear(1'b0),
+        .load_n(IC101_pin6_ROAD_LOAD_n),.d({IC90_pin11_10_9[2],IC90_pin11_10_9[1],2'b00}),
+        .q(IC69_pin3_2_6_7),.carry_n(IC69_pin12_CARRY_n),.borrow_n(IC69_pin13_NC));
+    fonz_74192 ic91(.up(IC69_pin12_CARRY_n),.down(1'b1),.clear(1'b0),
+        .load_n(IC101_pin6_ROAD_LOAD_n),.d({IC90_pin5_6_7[2],1'b1,IC90_pin5_6_7[0],IC90_pin3_DIV2}),
+        .q(IC91_pin3_2_6_7),.carry_n(IC91_pin12_IC47_pin9),.borrow_n(IC91_pin13_NC));
+    fonz_74393_half ic73a(.clk(IC9_pin5_UPPER_OSC),.clear(IC51_pin9_IC73_CLEAR),.q(IC73_pin3_4_5_6));
+    fonz_74393_half ic73b(.clk(IC73_pin3_4_5_6[3]),.clear(IC51_pin9_IC73_CLEAR),.q(IC73_pin11_10_9_8));
+endmodule
+
+module fonz_steering(
+    input wire IC28_pin8_STEER_GATE,IC34_pin4_ACCEL_n,IC37_pin12_ACCEL,
+    input wire IC61_pin12_IC39_pin10,IC61_pin6_STEER_RIGHT_n,IC30_pin4_CRASH_n,IC62_pin6_GAME_LATCH_n,
+    output wire [3:0] IC18_pin3_2_6_7,
+    output wire IC39_pin11_IC19_pin10,IC82_pin4_IC62_pin13,IC62_pin12_IC19_pin1,IC39_pin8_IC64_pin3,
+    output wire IC19_pin8_IC18_pin5,IC19_pin12_IC18_pin4,IC41_pin11_IC18_pin11
+);
+    wire IC18_pin12_NC,IC18_pin13_NC;
+    assign IC39_pin11_IC19_pin10=~(IC18_pin3_2_6_7[2] & IC18_pin3_2_6_7[0]); // pins12,13 ->11
+    assign IC82_pin4_IC62_pin13=~(IC18_pin3_2_6_7[2] | IC18_pin3_2_6_7[1]);  // pins6,5 ->4
+    assign IC62_pin12_IC19_pin1=~IC82_pin4_IC62_pin13;                      // pins13 ->12
+    assign IC39_pin8_IC64_pin3=~(IC61_pin12_IC39_pin10 & IC61_pin6_STEER_RIGHT_n); // pins10,9 ->8 (De Morgan)
+    // IC28.8 reaches IC19 pins 11 and 13; IC37.12 reaches IC19.2.
+    assign IC19_pin8_IC18_pin5=~(IC28_pin8_STEER_GATE & IC34_pin4_ACCEL_n & IC39_pin11_IC19_pin10);  // 11,9,10 -> 8
+    assign IC19_pin12_IC18_pin4=~(IC28_pin8_STEER_GATE & IC37_pin12_ACCEL & IC62_pin12_IC19_pin1); // 13,2,1 -> 12
+    // IC41 12,13 -> 11: drawn as AND (bubbled OR); must be AND (7408).
+    assign IC41_pin11_IC18_pin11=IC30_pin4_CRASH_n & IC62_pin6_GAME_LATCH_n;
+    fonz_74192 ic18(.up(IC19_pin8_IC18_pin5),.down(IC19_pin12_IC18_pin4),.clear(1'b0),
+        .load_n(IC41_pin11_IC18_pin11),.d(4'b0101),.q(IC18_pin3_2_6_7),
+        .carry_n(IC18_pin12_NC),.borrow_n(IC18_pin13_NC));
+endmodule
+
+module fonz_control_divider(
+    input wire IC37_pin8_PLAYER_CLK,IC95_pin1_LINE_START,IC103_pin5_START,
+    output wire IC40_pin5_DIV2,IC40_pin2_IC39_pin4,IC39_pin6_PLAYER_STEP
+);
+    wire IC40_pin6_NC,IC40_pin3_NC;
+    // IC95.1 drives both J8 and K11.
+    fonz_74107 ic40b(.clk(IC37_pin8_PLAYER_CLK),.clear_n(IC103_pin5_START),
+        .j(IC95_pin1_LINE_START),.k(IC95_pin1_LINE_START),.q(IC40_pin5_DIV2),.q_n(IC40_pin6_NC));
+    fonz_74107 ic40a(.clk(IC40_pin5_DIV2),.clear_n(IC103_pin5_START),
+        .j(IC103_pin5_START),.k(1'b0),.q(IC40_pin3_NC),.q_n(IC40_pin2_IC39_pin4));
+    assign IC39_pin6_PLAYER_STEP=~(IC40_pin5_DIV2 & IC40_pin2_IC39_pin4); // 5,4 -> 6
+endmodule
+
+module fonz_control_gate_bank(
+    input wire IC95_pin10_IC38_pin4,IC62_pin10_LOWER_CLEAR,IC95_pin13_IC60_pin5,IC47_pin13_STEER_WINDOW,
+    input wire IC37_pin6_LEFT,IC37_pin4_RIGHT,
+    output wire IC38_pin6_IC61_pin13,IC60_pin6_IC61_pin5,IC59_pin4_IC60_pin1,IC59_pin6_IC60_pin2,
+    output wire IC60_pin3_STEER_DECODE,IC61_pin12_IC39_pin10,IC61_pin6_STEER_RIGHT_n
+);
+    // R84/C47, R86/C48, R88/C49 and the three IC37 Schmitt stages
+    // precede these inputs (fonz_contact_conditioning).
+    // IC62.10 reaches IC38.5 and IC60.4.
+    assign IC38_pin6_IC61_pin13=~(IC95_pin10_IC38_pin4 & IC62_pin10_LOWER_CLEAR); // 4,5 -> 6
+    assign IC60_pin6_IC61_pin5=~(IC62_pin10_LOWER_CLEAR & IC95_pin13_IC60_pin5);  // 4,5 -> 6
+    assign IC59_pin4_IC60_pin1=~IC37_pin6_LEFT;   // 3 -> 4
+    assign IC59_pin6_IC60_pin2=~IC37_pin4_RIGHT;  // 5 -> 6
+    // IC60 1,2 -> 3: drawn as OR with bubbled inputs, i.e. the package's
+    // NAND (like IC39.8). High while either steering switch is closed.
+    // Drives A8 of both lower shape PROMs (IC86/87 pin 14).
+    assign IC60_pin3_STEER_DECODE=~(IC59_pin4_IC60_pin1 & IC59_pin6_IC60_pin2);
+    assign IC61_pin12_IC39_pin10=~(IC38_pin6_IC61_pin13 & IC37_pin6_LEFT & IC47_pin13_STEER_WINDOW); // 13,1,2 -> 12
+    assign IC61_pin6_STEER_RIGHT_n=~(IC47_pin13_STEER_WINDOW & IC60_pin6_IC61_pin5 & IC37_pin4_RIGHT);  // 3,5,4 -> 6
+endmodule
+`default_nettype wire

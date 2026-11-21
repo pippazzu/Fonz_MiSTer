@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Lower PROM circuit: IC106 clock, IC63 bit selector and IC109/88 divider.
+// Wire names follow docs/NET_NAMES.md.
+`timescale 1ns/1ps
+`default_nettype none
+module fonz_lower_shape(
+    input wire prom_clk,
+    input wire [15:0] prom_load,
+    input wire IC106_pin5_LOWER_OSC,IC62_pin10_LOWER_CLEAR,IC37_pin4_RIGHT,IC62_pin6_GAME_LATCH_n,
+    input wire IC105_pin5_THROTTLE,IC60_pin3_STEER_DECODE,
+    output wire IC108_pin7_IC6_pin10,IC108_pin9_LOWER_SHAPE2,IC63_pin11_IC62_pin1,
+    output wire IC62_pin2_LOWER_GATE,IC84_pin3_LOWER_ENABLE_n,
+    output wire [8:0] LOWER_SHAPE_ADDRESS,
+    output wire [3:0] IC88_pin3_4_5_6,IC88_pin11_10_9_8,IC109_pin3_4_5_6,IC109_pin11_10_9_8
+);
+    wire IC85_pin6_IC108_pin14,IC85_pin3_IC108_pin2,IC41_pin6_IC63_pin1;
+    wire [3:0] IC63_pin3_4_5_6,IC63_pin11_10_9_8,IC86_pin12_11_10_9,IC87_pin12_11_10_9;
+    fonz_lower_shape_address address(
+        .IC106_pin5_LOWER_OSC(IC106_pin5_LOWER_OSC),.IC62_pin10_LOWER_CLEAR(IC62_pin10_LOWER_CLEAR),
+        .IC37_pin4_RIGHT(IC37_pin4_RIGHT),
+        // IC63 clears are IC62.10; IC88 clears are IC105.Q5 (native
+        // 3511,5981 on the IC105.Q5 / IC100.1 wire).
+        // IC109 pin 8 (QD) clocks IC88 pin 1; IC88 pin 9 (QC) clears IC109.
+        .IC109_pin8_IC88_pin1(IC109_pin11_10_9_8[3]),.IC105_pin5_THROTTLE(IC105_pin5_THROTTLE),
+        .IC88_pin9_IC109_CLEAR(IC88_pin11_10_9_8[2]),
+        .IC60_pin3_STEER_DECODE(IC60_pin3_STEER_DECODE),
+        .LOWER_SHAPE_ADDRESS(LOWER_SHAPE_ADDRESS),.IC85_pin6_IC108_pin14(IC85_pin6_IC108_pin14),
+        .IC85_pin3_IC108_pin2(IC85_pin3_IC108_pin2),.IC63_pin11_IC62_pin1(IC63_pin11_IC62_pin1),
+        .IC62_pin2_LOWER_GATE(IC62_pin2_LOWER_GATE),.IC41_pin6_IC63_pin1(IC41_pin6_IC63_pin1),
+        .IC63_pin3_4_5_6(IC63_pin3_4_5_6),.IC63_pin11_10_9_8(IC63_pin11_10_9_8),
+        .IC88_pin3_4_5_6(IC88_pin3_4_5_6),.IC88_pin11_10_9_8(IC88_pin11_10_9_8),
+        .IC109_pin3_4_5_6(IC109_pin3_4_5_6),.IC109_pin11_10_9_8(IC109_pin11_10_9_8));
+    fonz_prom #(.AW(9),.HEXFILE("rom/ic86.86.hex"),.BASE(0)) ic86(
+        .a(LOWER_SHAPE_ADDRESS),.enable_n(1'b0),.q(IC86_pin12_11_10_9),.prom_clk(prom_clk),.prom_load(prom_load));
+    fonz_prom #(.AW(9),.HEXFILE("rom/ic87.87.hex"),.BASE(512)) ic87(
+        .a(LOWER_SHAPE_ADDRESS),.enable_n(1'b0),.q(IC87_pin12_11_10_9),.prom_clk(prom_clk),.prom_load(prom_load));
+    // IC62.2 reaches IC84.2, IC62.6 reaches IC84.1.
+    assign IC84_pin3_LOWER_ENABLE_n=~(IC62_pin2_LOWER_GATE & IC62_pin6_GAME_LATCH_n); // both IC108 /G inputs
+    fonz_74153 ic108(.a(IC85_pin6_IC108_pin14),.b(IC85_pin3_IC108_pin2),
+        .g1_n(IC84_pin3_LOWER_ENABLE_n),.g2_n(IC84_pin3_LOWER_ENABLE_n),
+        .c1({IC87_pin12_11_10_9[0],IC87_pin12_11_10_9[1],IC87_pin12_11_10_9[2],IC87_pin12_11_10_9[3]}),
+        .c2({IC86_pin12_11_10_9[0],IC86_pin12_11_10_9[1],IC86_pin12_11_10_9[2],IC86_pin12_11_10_9[3]}),
+        .y1(IC108_pin7_IC6_pin10),.y2(IC108_pin9_LOWER_SHAPE2));
+endmodule
+`default_nettype wire

@@ -1,0 +1,18 @@
+tools/
+build/
+__pycache__/
+# Template_MiSTer build output (mister/)
+mister/db/
+mister/incremental_db/
+mister/output_files/
+mister/greybox_tmp/
+mister/build_id.v
+mister/*.qws
+mister/c5_pin_model_dump.txt
+mister/PLLJ_PLLSPE_INFO.txt
+mister/*.rpt
+mister/*.cdf
+
+# PROM data: written from fonz.zip by scripts/extract_proms.py, never committed
+rom/
+*.zip
