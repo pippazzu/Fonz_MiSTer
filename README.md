@@ -1,6 +1,6 @@
-# The Fonz (Sega, 1976) for MiSTer
+# Fonz (Sega, 1976) for MiSTer
 
-MiSTer FPGA core for SEGA's The Fonz (1976), based on the TTL schematics and one real board video recording.
+MiSTer FPGA core for SEGA's Fonz (1976), based on the TTL schematics and one real board video recording.
 
 This game is a clone of Man-TT (1976, confirmed by schematics) and possibly of Moto Cross (1976).
 
